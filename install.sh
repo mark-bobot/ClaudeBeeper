@@ -49,27 +49,40 @@ hook_entry = {
 # Navigate/create the hooks structure
 hooks = settings.setdefault("hooks", {})
 
-# Add hooks for both Stop and Notification events
-hook_types = ["Stop", "Notification"]
+# Add hooks for Stop and Notification (with permission_prompt matcher)
+hooks = settings.setdefault("hooks", {})
 added_any = False
 
-for hook_type in hook_types:
-    type_hooks = hooks.setdefault(hook_type, [])
+# Stop hook (no matcher needed)
+stop_hooks = hooks.setdefault("Stop", [])
+stop_exists = any(
+    hook_script in h.get("command", "")
+    for group in stop_hooks
+    for h in group.get("hooks", [])
+)
+if not stop_exists:
+    stop_hooks.append({"hooks": [hook_entry]})
+    added_any = True
+    print("  Stop hook added.")
+else:
+    print("  Stop hook already configured.")
 
-    # Check if our hook is already present
-    already = False
-    for group in type_hooks:
-        for h in group.get("hooks", []):
-            if hook_script in h.get("command", ""):
-                already = True
-                break
-
-    if not already:
-        type_hooks.append({"hooks": [hook_entry]})
-        added_any = True
-        print(f"  {hook_type} hook added.")
-    else:
-        print(f"  {hook_type} hook already configured.")
+# Notification hook with permission_prompt matcher
+notif_hooks = hooks.setdefault("Notification", [])
+notif_exists = any(
+    hook_script in h.get("command", "")
+    for group in notif_hooks
+    for h in group.get("hooks", [])
+)
+if not notif_exists:
+    notif_hooks.append({
+        "matcher": "permission_prompt",
+        "hooks": [hook_entry]
+    })
+    added_any = True
+    print("  Notification hook added (permission_prompt).")
+else:
+    print("  Notification hook already configured.")
 
 if added_any:
     with open(settings_path, "w") as f:
